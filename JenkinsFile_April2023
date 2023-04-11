@@ -1,0 +1,34 @@
+node{
+    def mavenHome = tool name: 'maven3.9.1'
+ stage('1.CodeClone'){
+    git credentialsId: 'gitHubCredentials', url: 'https://github.com/PraizeTech/maven1-web-application'
+  }
+  stage('2.MavenBuild'){
+   sh "${mavenHome}/bin/mvn package"
+ }
+ stage('3.CodeQuality'){
+   sh "${mavenHome}/bin/mvn sonar:sonar"
+ }
+  stage('4.UploadArtifacts'){
+   sh "${mavenHome}/bin/mvn deploy"
+ }
+stage('5.Deploy2UAT'){
+ deploy adapters: [tomcat9(credentialsId: 'fdc12a4b-c0e9-4067-a939-bbfe53b36639', path: '', url: 'http://100.25.166.147:8080/')], contextPath: null, war: 'target/*war'
+}
+stage('6.Manualapproval'){
+    sh "echo 'Application ready for review' "
+    timeout(time:5, unit:'HOURS') {
+    input message: 'Application ready for deployment, Please review and approve'
+      }
+  }
+  stage('7.Deploy2Prod'){
+ deploy adapters: [tomcat9(credentialsId: 'fdc12a4b-c0e9-4067-a939-bbfe53b36639', path: '', url: 'http://100.25.166.147:8080/')], contextPath: null, war: 'target/*war'
+}
+stage('8emailNotify'){
+emailext body: '''Hello Team,
+
+Build is done.
+
+PRAISETECHIE''', recipientProviders: [contributor(), developers(), upstreamDevelopers()], subject: 'Build Status', to: 'seyitanpraise@gmail.com'
+  }
+}
