@@ -1,0 +1,66 @@
+pipeline{
+  agent {
+    label 'master'
+  } 
+  tools {
+    maven 'maven3.9.1'
+  }
+  //options{}
+  //triggers{}
+  stages {
+    stage('1Clone'){
+      steps{
+        sh "echo 'cloning the latest application version' "
+        git "https://github.com/PraizeTech/maven1-web-application"
+        sh "echo 'latest application version available for testing and build' "
+      }
+    }
+    stage('2TestBuild'){
+      steps{
+        sh "echo 'running JUnit-test-cases' "
+        sh "echo 'testing must be passed to create artifacts ' "
+        sh "mvn clean package" 
+      }
+    }
+   stage('3CodeQualityAnalysis') {
+    steps{
+        sh "echo setup sonarQube authentication"
+        sh "echo 'Perfoming CodeQualityAnalysis' "
+        sh "mvn sonar:sonar"      
+    }
+   }
+   stage('4UploadArtifacts') {
+    steps{
+      sh "echo configure nexus authentication"
+      //sh "mvn deploy"
+      sh "echo artifacts uploaded"
+    }
+   }
+  stage('5deploy') {
+    steps{
+      deploy adapters: [tomcat9(credentialsId: 'fdc12a4b-c0e9-4067-a939-bbfe53b36639', path: '', url: 'http://100.25.166.147:8080/')], contextPath: null, war: 'target/*war'
+        }
+   }
+
+  }
+  post{ 
+    always{
+emailext body: '''Great job team.
+
+PraiseTechie ''', recipientProviders: [buildUser(), developers()], subject: 'Build Success', to: 'seyitanpraise@gmail.com'
+
+    }
+    success{
+emailext body: '''Great job team.
+
+PraiseTechie ''', recipientProviders: [buildUser(), developers()], subject: 'Build Success', to: 'seyitanpraise@gmail.com'
+
+    }
+    failure{
+emailext body: '''Please review this job.
+
+PraiseTechie ''', recipientProviders: [buildUser(), developers()], subject: 'Build failed', to: 'seyitanpraise@gmail.com'
+
+    }
+}
+}
